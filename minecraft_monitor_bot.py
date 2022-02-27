@@ -1,5 +1,5 @@
 # settings should have prefix and token variables
-from bot_settings import prefix, token
+from bot_settings import prefix, token, channel_id
 
 # import the math library
 import math
@@ -9,6 +9,11 @@ import discord
 from discord.ext import commands
 
 import asyncio
+
+import os
+DIRECTORY_PATH = os.path.dirname(__file__)
+
+FILE_PATH = os.path.join(DIRECTORY_PATH, "logs/latest.log")
 
 # Remind console user of the prefix
 print(f'Attempting to launch Bot using {prefix} as the command prefix.')
@@ -22,8 +27,6 @@ bot = commands.Bot(command_prefix=prefix)
 # store the last line form the log
 last_line = ''
 
-bot.minecraft_log_channel = ''
-
 
 def get_printables(log_contents):
     printables = ''
@@ -36,17 +39,19 @@ def get_printables(log_contents):
 def check_log_updates():
     global last_line
 
-    server_log_stream = open('logs\latest.log', 'r')
-    new_log_contents = server_log_stream.readlines()
+    server_log_stream = open(FILE_PATH, 'r')
+    log_contents = server_log_stream.readlines()
     server_log_stream.close()
 
     try:
-        i = new_log_contents.index(last_line)
+        i = log_contents.index(last_line)
     except ValueError:
         i = 0
 
+    new_log_contents = log_contents[i+1:]
+
     if new_log_contents:
-        message = get_printables(new_log_contents[i+1:])
+        message = get_printables(new_log_contents)
         last_line = new_log_contents[-1]
     else:
         message = ''
@@ -60,7 +65,7 @@ async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')
     # initialize last_line
     check_log_updates()
-    print(f'Last line on launch: {last_line}')
+    bot.minecraft_log_channel = bot.get_channel(channel_id)
     bot.loop.create_task(status_task())
 
 
@@ -84,7 +89,6 @@ async def server_log(ctx):
 @bot.command(name='set_channel')
 async def set_channel(ctx):
     bot.minecraft_log_channel = ctx.channel
-
 
 
 # timer code from
